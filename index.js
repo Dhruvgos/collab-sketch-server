@@ -11,7 +11,7 @@ io.on('connection', (socket) => {
   console.log( socket.id ,' connected');
 
   socket.on('client-ready', (roomName) => {
-    console.log("done jaa rha")
+    // console.log("done jaa rha")
     // io.to(roomName).emit('get-canvas-state',roomName) 
     // socket.emit('get-canvas-state',roomName)          
     // io.to(roomName).emit('get-canvas-state')
@@ -45,12 +45,12 @@ io.on('connection', (socket) => {
   //   }
   // })
   socket.on('canvas-state', (state) => {
-    console.log('received canvas state');
+    // console.log('received canvas state');
     
     // Ensure that the state object contains the necessary properties
     if (state && state.roomName && state.socketsByRoom) {
-        console.log("Current socket ID:", socket.id);
-        console.log("Sockets in the room:", state.socketsByRoom);
+        // console.log("Current socket ID:", socket.id);
+        // console.log("Sockets in the room:", state.socketsByRoom);
 
         // Emit the canvas state to all sockets in the room except the sender
         // state.socketsByRoom.forEach((socketId) => {
@@ -66,21 +66,25 @@ io.on('connection', (socket) => {
 
   socket.on('leave-room',roomName=>{
     socket.leave(roomName)
-    console.log(socket.id,"leaves",roomName)
+    // console.log(socket.id,"leaves",roomName)
   })
 
   socket.on('draw', (data) => {
     // console.log("line 34",data)
     // socket.broadcast.emit('draw', data); // Broadcast to other clients
-    console.log("the roomanme is : ", data.roomName)
+    // console.log("the roomanme is : ", data.roomName)
     io.to(data.roomName).emit('draw',data);
     
   });
   
   socket.on('write',(data)=>{
-    console.log(data)
+    // console.log(data)
     // io.to(data.roomName).emit('write',data);
     io.to(data.roomName).emit('write',data)
+  })
+
+  socket.on('rectangle', (data)=>{
+    io.to(data.roomName).emit('rectangle',data);
   })
 
   socket.on('clear', (roomName) => io.to(roomName).emit('clear'))
