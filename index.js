@@ -84,7 +84,7 @@ io.on('connection', (socket) => {
   })
 
   socket.on('rectangle', (data)=>{
-    io.to(data.roomName).emit('rectangle',data);
+    socket.to(data.roomName).emit('rectangle',data);
   })
 
   socket.on('clear', (roomName) => io.to(roomName).emit('clear'))
