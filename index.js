@@ -73,18 +73,21 @@ io.on('connection', (socket) => {
     // console.log("line 34",data)
     // socket.broadcast.emit('draw', data); // Broadcast to other clients
     // console.log("the roomanme is : ", data.roomName)
-    io.to(data.roomName).emit('draw',data);
+    socket.to(data.roomName).emit('draw',data);
     
   });
   
   socket.on('write',(data)=>{
     // console.log(data)
-    // io.to(data.roomName).emit('write',data);
-    io.to(data.roomName).emit('write',data)
+    io.to(data.roomName).emit('write',data);
+    // socket.to(data.roomName).emit('write',data)
   })
 
   socket.on('rectangle', (data)=>{
     socket.to(data.roomName).emit('rectangle',data);
+  })
+  socket.on('circle', (data)=>{
+    socket.to(data.roomName).emit('circle',data);
   })
 
   socket.on('clear', (roomName) => io.to(roomName).emit('clear'))
