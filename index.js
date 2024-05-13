@@ -1,99 +1,95 @@
-import http from 'http';
-import { Server } from 'socket.io';
+import http from "http";
+import { Server } from "socket.io";
 
 // Create an HTTP server
-const server = http.createServer()
+const server = http.createServer();
 
 // Create a Socket.IO server by passing the HTTP server instance
-const io = new Server(server,{cors:'*'});
-let rname= ''
-io.on('connection', (socket) => {
-  console.log( socket.id ,' connected');
+const io = new Server(server, { cors: "*" });
+let rname = "";
+let userSocketMap = new Map();
+io.on("connection", (socket) => {
+  // console.log(socket.id, " connected");
 
-  socket.on('client-ready', (roomName) => {
-    // console.log("done jaa rha")
-    // io.to(roomName).emit('get-canvas-state',roomName) 
-    // socket.emit('get-canvas-state',roomName)          
-    // io.to(roomName).emit('get-canvas-state')
-  })
-  socket.emit('sid',socket.id);
-  socket.on('join-room',(roomname)=>{
-    // console.log(sg)
-    socket.join(roomname)
-    const socketsInRoom = io.sockets.adapter.rooms.get(roomname); // Get all sockets in the room
-    const socketIds = socketsInRoom ? Array.from(socketsInRoom) : []; // Extract socket IDs
-    io.to(roomname).emit('sockets-in-room', socketIds); // Emit the array of socket
-    
-    // socket.to(roomname).emit('get-canvas-state',roomname)
-    io.to(socketIds[0]).emit('get-canvas-state',roomname)
-    // socket.to(roomname).emit('get-canvas-state',roomname);
-    console.log(socket.id,"joined",roomname)
-  })
- 
-  
-  // socket.on('canvas-state', (state) => {
-  //   console.log('received canvas state')
-    
-  //   // console.log("line 29",state.roomName)
-  //   if(state.roomName){
-  //     //  io.to(state.roomName).emit('canvas-state-from-server',state.url);
-  //     console.log("is socekt ki bat",socket.id)
-  //     console.log(state.socketsByRoom)
-  //     socket.to(state.roomName).except(state.socketsByRoom).emit('canvas-state-from-server',state.url)   ///i guess logic yaha lgega kyuki at this point wo sare sockets jinhone state di h wwo unko hi state bej rhe hai
-  //     // io.to(state.roomName).emit('canvas-state-from-server',state.url)   ///i guess logic yaha lgega kyuki at this point wo sare sockets jinhone state di h wwo unko hi state bej rhe hai
-  //     // socket.emit('canvas-state-from-server',state.url)
-  //   }
-  // })
-  socket.on('canvas-state', (state) => {
-    // console.log('received canvas state');
-    
-    // Ensure that the state object contains the necessary properties
-    if (state && state.roomName && state.socketsByRoom) {
-        // console.log("Current socket ID:", socket.id);
-        // console.log("Sockets in the room:", state.socketsByRoom);
+  socket.on("client-ready", (roomName) => {});
 
-        // Emit the canvas state to all sockets in the room except the sender
-        // state.socketsByRoom.forEach((socketId) => {
-        //     if (socketId !== socket.id) {
-          const i = state.socketsByRoom.length-1;
-          socket.to(state.socketsByRoom[i]).emit('canvas-state-from-server', state.url)
-                // socket.to(state.roomName).except(state.socketsByRoom).emit('canvas-state-from-server', state.url);
-            // }
-        // });
-    }
+  socket.on('send-user', (username) => {
+    userSocketMap.set(username.name, username.sid);
+    // emitOnlineUsers();
+    // console.log("Updated userSocketMap:", userSocketMap);
+
 });
 
+  socket.emit("sid", socket.id);
+  socket.on("join-room", (roomname,messages) => {
+    socket.join(roomname);
+    // console.log(messages)
+    const socketsInRoom = io.sockets.adapter.rooms.get(roomname); // Get all sockets in the room
+    const socketIds = socketsInRoom ? Array.from(socketsInRoom) : []; // Extract socket IDs
+    io.to(roomname).emit("sockets-in-room", socketIds); // Emit the array of socket
 
-  socket.on('leave-room',roomName=>{
-    socket.leave(roomName)
-    // console.log(socket.id,"leaves",roomName)
-  })
 
-  socket.on('draw', (data) => {
-    // console.log("line 34",data)
-    // socket.broadcast.emit('draw', data); // Broadcast to other clients
-    // console.log("the roomanme is : ", data.roomName)
-    socket.to(data.roomName).emit('draw',data);
+    io.to(socketIds[0]).emit("get-canvas-state", roomname);
+    io.to(socketIds[0]).emit("get-messages",roomname);
     
+    // console.log(socket.id, "joined", roomname);
   });
-  
-  socket.on('write',(data)=>{
+
+  socket.on("canvas-state", (state) => {
+    if (state && state.roomName && state.socketsByRoom) {
+      const i = state.socketsByRoom.length - 1;
+      socket
+        .to(state.socketsByRoom[i])
+        .emit("canvas-state-from-server", state.url);
+    }
+  });
+  socket.on("message-array", (state) => {
+    if (state && state.messages && state.roomname) {
+      // const i = state.socketsByRoom.length - 1;
+      console.log(state)
+      socket
+        .to(state.id)
+        .emit("message-state-from-server", state.messages);
+    }
+  });
+
+  socket.on("leave-room", (roomName) => {
+    userSocketMap.forEach((value, key) => {
+      if (value === socket.id) {
+          userSocketMap.delete(key);
+      }
+  });
+    socket.leave(roomName);
+  });
+
+  socket.on("draw", (data) => {
+    socket.to(data.roomName).emit("draw", data);
+  });
+
+  socket.on("write", (data) => {
+    io.to(data.roomName).emit("write", data);
+  });
+
+  socket.on("rectangle", (data) => {
+    socket.to(data.roomName).emit("rectangle", data);
+  });
+  socket.on("circle", (data) => {
+    socket.to(data.roomName).emit("circle", data);
+  });
+  socket.on("message", (data) => {
     // console.log(data)
-    io.to(data.roomName).emit('write',data);
-    // socket.to(data.roomName).emit('write',data)
-  })
-
-  socket.on('rectangle', (data)=>{
-    socket.to(data.roomName).emit('rectangle',data);
-  })
-  socket.on('circle', (data)=>{
-    socket.to(data.roomName).emit('circle',data);
-  })
-
-  socket.on('clear', (roomName) => io.to(roomName).emit('clear'))
-  socket.on('disconnect', () => {
-    console.log( socket.id, ' disconnected');
+    socket.to(data.roomName).emit("message", data);
   });
+
+  socket.on("clear", (roomName) => io.to(roomName).emit("clear"));
+  socket.on("disconnect", () => {
+    // console.log(socket.id, " disconnected");
+  });
+  socket.on('getChatHistory', () => {
+    
+ 
+  });
+
 });
 
 const PORT = process.env.PORT || 3001;
